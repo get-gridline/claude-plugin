@@ -1,0 +1,14 @@
+{
+  "name": "gridline",
+  "owner": {
+    "name": "Gridline",
+    "url": "https://get-gridline.dev"
+  },
+  "plugins": [
+    {
+      "name": "gridline",
+      "source": "./",
+      "description": "Route, track and fail over your AI agents through Gridline. Wire up agents and harnesses, move an app off a provider SDK, reach MCP servers inside your own network, and find out what a conversation cost."
+    }
+  ]
+}
