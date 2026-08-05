@@ -1,0 +1,56 @@
+---
+name: gridline-cost
+description: Explain Gridline spend — why a period cost what it did, and where the money went by tenant, agent, model or session. Use for questions about cost, spend, billing, budgets being hit, attribution, or why a bill changed.
+---
+
+# Explaining Gridline spend
+
+Cite `gridline-primitives` and `references/telemetry-and-cost.md` for the model.
+
+## Start with the shape, not the total
+
+```
+cost_report(project, group_by="tenant", period=…)
+cost_report(project, group_by="agent",  period=…)
+cost_report(project, group_by="model",  period=…)
+```
+
+The question is almost always "why is this different from what I expected", so lead with the
+dimension that answers it — a total on its own explains nothing.
+
+If the period is vague, say what you used. "Last week" is ambiguous and a report labelled with its
+actual range is worth the extra line.
+
+## Three things to report and never quietly fold in
+
+**Waste, alongside the total.** Spend on attempts that produced no usable answer. Do not subtract it
+— it is money being spent, and usually the most actionable number in the report.
+
+**`unpriced_attempts`, as a visible gap.** Attempts whose model has no known price. Say how many and
+that the total excludes them. A total that looked complete and was not is worse than one that admits
+what it cannot account for.
+
+**Cache reads, writes and plain input, separately.** A write costs more than plain input; a read
+costs much less. Rising writes with flat reads means something invalidates the prefix every turn —
+usually a tool list or system prompt that varies per request, or two near-identical harnesses where
+one would do. That is a fixable bill.
+
+## Failover cost
+
+A failover writes two attempt records under one `request_id`. So a request's cost is the **sum** of
+its attempts. If the fallback rate is material, report what failover cost over the period on its own
+line — it is real spend that no provider dashboard will attribute for you.
+
+## Dead-weight tools
+
+Tools declared in a harness and never called still cost input tokens every turn. If reports surface
+them, name them: it is a recurring cost with no benefit and a one-line fix.
+
+## Then answer the question
+
+Finish with the specific answer in one or two sentences, and at most three ranked actions. A table
+the user has to interpret is not an answer.
+
+Do not recommend a cheaper model without saying what it gives up — check `explain_agent` or
+`browse_models` first. A recommendation that breaks tool support to save money is not a saving.
+
