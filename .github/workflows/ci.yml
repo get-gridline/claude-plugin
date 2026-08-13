@@ -1,0 +1,74 @@
+# The public mirror's CI. **A template, copied into the mirror by publish-plugin.yml.**
+#
+# **Deliberately not in `.github/workflows/`.** Actions scans that directory and would run this file
+# here on every pull request — where `hooks/guard.py` does not exist at the repository root, so it
+# would fail on every PR for a reason unrelated to the change. `on: push: branches: [main]` is
+# harmless in a repository whose default branch is `master`, but `on: pull_request` is not.
+#
+# Generated rather than maintained over there, which is the answer to "two copies of the checks will
+# drift". There is one copy — this one — and the mirror's is a build output like everything else in
+# it. `check_plugin.py` is copied in beside it and takes the plugin root as an argument, so the same
+# script serves both layouts.
+#
+# **A canary, not a gate.** Upstream is where publishing is stopped: a pull request into the Gridline
+# repository cannot merge unless the assembled mirror passes the same checks, so nothing reaches this
+# repository without them having run. By the time this executes, the content is already on `main` and
+# therefore already live to anyone running `/plugin marketplace update` — tags are bookkeeping and do
+# not gate what customers pull.
+#
+# It is still worth having: it is the only thing that checks the actual published commit, in place,
+# rather than a tree assembled a moment earlier. If it goes red, something got past the upstream gate
+# and the answer is a fix upstream, not an edit here.
+#
+# There is no tag job. Upstream creates the tag with the push, because it is the record upstream reads
+# to decide whether a version has shipped.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      # First, because it is the one protecting a customer's credentials. It fails open by design —
+      # a hook that blocked on every unfamiliar input would be uninstalled within the hour, and then
+      # it guards nothing — so a crash prints nothing and Claude Code reads that as "no opinion".
+      # This is what stops a bug disabling it silently.
+      - name: the guard hook's own rules
+        run: python3 hooks/guard.py --selftest
+
+      # Everything else about a plugin degrades to silence too: frontmatter that will not parse never
+      # triggers, an over-long description is truncated so a skill fires on some triggers and not
+      # others, and a command naming a missing skill appears in the `/` menu and does nothing.
+      - name: every manifest, skill, command and subagent loads
+        run: python3 .github/scripts/check_plugin.py .
+
+      # A tripwire for copied prose, not a leak scan: there is nothing internal in this repository to
+      # leak, but its text is written alongside Gridline's own and prose gets copied.
+      #
+      # **The pattern below is not typed here.** `make (test|run|live|kms|chart|images)\b|\.claude/rules|docs/[0-9]|(^|[^a-z])integration/|localstack|control-plane/src|proxy/internal|tunnel/internal|alembic|sqlalchemy|GRIDLINE_MASTER_KEY|GRIDLINE_KMS|context_for|delivery_ikm|session_turns|getartifact|data plane|routing snapshot|wrapped key|through the proxy` is replaced at assemble time
+      # with the exact string `verify_plugin_mirror.BANNED_PATTERN` holds upstream -- this repository
+      # has no Python module to import it from, since only `check_plugin.py` is copied in, so
+      # splicing at generation time is what stands in for the import. A hand-typed copy here is what
+      # let the canary miss four terms added upstream on 2026-08-03: this file was never touched, and
+      # nothing compared the two.
+      - name: no Gridline-internal references
+        run: |
+          # `--exclude=ci.yml` rather than `--exclude-dir=.github`: this file necessarily
+          # contains the pattern as literal text once spliced, so it must exempt itself --
+          # but `.github/scripts/check_plugin.py` is a real script that ships beside it and
+          # has no such reason to be exempt, and used to go unscanned along with it.
+          if grep -rniE 'make (test|run|live|kms|chart|images)\b|\.claude/rules|docs/[0-9]|(^|[^a-z])integration/|localstack|control-plane/src|proxy/internal|tunnel/internal|alembic|sqlalchemy|GRIDLINE_MASTER_KEY|GRIDLINE_KMS|context_for|delivery_ikm|session_turns|getartifact|data plane|routing snapshot|wrapped key|through the proxy' \
+             --exclude-dir=.git --exclude=ci.yml . ; then
+            echo
+            echo "The lines above name something internal to Gridline, and this repository is"
+            echo "public. A published detail cannot be unpublished."
+            exit 1
+          fi
+          echo "no internal references."
