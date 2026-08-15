@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "gridline": {
+      "type": "http",
+      "url": "${GRIDLINE_MCP_URL:-https://mcp.get-gridline.dev/mcp}"
+    }
+  }
+}
