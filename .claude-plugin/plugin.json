@@ -1,0 +1,21 @@
+{
+  "name": "gridline",
+  "displayName": "Gridline",
+  "version": "0.10.0",
+  "description": "Route, track and fail over your AI agents through Gridline. Wire up agents and harnesses, move an app off a provider SDK, reach MCP servers inside your own network, and find out what a conversation cost.",
+  "author": {
+    "name": "Gridline",
+    "url": "https://get-gridline.dev"
+  },
+  "homepage": "https://get-gridline.dev",
+  "license": "Apache-2.0",
+  "keywords": [
+    "gridline",
+    "agents",
+    "llm",
+    "routing",
+    "cost",
+    "mcp",
+    "observability"
+  ]
+}
